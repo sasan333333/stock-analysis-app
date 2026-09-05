@@ -3,9 +3,10 @@
 این فایل توسط GitHub Actions به‌صورت زمان‌بندی‌شده اجرا می‌شود:
 - فایل alerts.json را می‌خواند
 - برای هر هشدار فعال، آخرین قیمت نماد را از tsetmc می‌گیرد
+- اگر قیمت در فاصله ۳٪ از سطح هشدار قرار گرفت، یک پیام «نزدیک شدن» می‌فرستد (فقط یک‌بار)
 - اگر قیمت هدف رسیده باشد، نمودار ۲ ماه اخیر (روزانه) را می‌سازد
-  و پیام + عکس را به کانال تلگرام ارسال می‌کند
-  (روی چارت، خط تمام هشدارهای فعال/غیرفعالِ همان نماد رسم و قیمتشان کنار خط نوشته می‌شود)
+  و پیام + عکس نهایی را به کانال تلگرام ارسال می‌کند
+  (روی چارت، خط تمام هشدارهای این نماد رسم و قیمتشان کنار خط نوشته می‌شود)
 - alerts.json را با وضعیت جدید به‌روزرسانی می‌کند (توسط ورک‌فلو کامیت می‌شود)
 """
 
@@ -26,11 +27,11 @@ BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 FORCE_CHECK = os.environ.get("FORCE_CHECK", "false").lower() == "true"
 
-# روزهای معاملاتی بورس تهران: شنبه تا چهارشنبه
-# Python weekday(): دوشنبه=0 ... یکشنبه=6  -> شنبه=5، یکشنبه=6، دوشنبه=0، سه‌شنبه=1، چهارشنبه=2
+APPROACH_THRESHOLD_PERCENT = 3.0  # فاصله درصدی برای هشدار «نزدیک شدن»
+
 TRADING_WEEKDAYS = {5, 6, 0, 1, 2}
-MARKET_OPEN_MIN = 9 * 60          # 09:00
-MARKET_CLOSE_MIN = 12 * 60 + 30   # 12:30
+MARKET_OPEN_MIN = 9 * 60
+MARKET_CLOSE_MIN = 12 * 60 + 30
 
 
 def in_market_hours() -> bool:
@@ -53,8 +54,13 @@ def save_alerts(alerts):
         json.dump(alerts, f, ensure_ascii=False, indent=2)
 
 
+def distance_percent(current_price: float, target_price: float):
+    if target_price == 0:
+        return None
+    return abs(current_price - target_price) / abs(target_price) * 100.0
+
+
 def build_chart(symbol: str, alert_prices) -> str:
-    """نمودار کندل‌استیک ۲ ماه اخیر با خط تمام سطوح هشدار این نماد (با برچسب قیمت)."""
     ticker = tse.Ticker(symbol)
     hist = ticker.history.copy()
     hist["date"] = pd.to_datetime(hist["date"])
@@ -106,7 +112,23 @@ def build_chart(symbol: str, alert_prices) -> str:
     return path
 
 
-def send_telegram_alert(symbol, title, target_price, current_price, condition, all_prices):
+def send_telegram_message_with_chart(caption, symbol, all_prices):
+    chart_path = build_chart(symbol, all_prices)
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+    with open(chart_path, "rb") as f:
+        resp = requests.post(
+            url,
+            data={"chat_id": CHAT_ID, "caption": caption},
+            files={"photo": f},
+            timeout=60,
+        )
+    resp.raise_for_status()
+    data = resp.json()
+    if not data.get("ok"):
+        raise RuntimeError(data.get("description", "خطای نامشخص از تلگرام"))
+
+
+def send_hit_alert(symbol, title, target_price, current_price, condition, all_prices):
     cond_text = (
         "به قیمت هدف رسید یا از آن بالاتر رفت"
         if condition == "gte"
@@ -124,19 +146,23 @@ def send_telegram_alert(symbol, title, target_price, current_price, condition, a
         f"سطوح هشدار این نماد: {levels_text}\n"
         f"زمان: {now_str}"
     )
-    chart_path = build_chart(symbol, all_prices)
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-    with open(chart_path, "rb") as f:
-        resp = requests.post(
-            url,
-            data={"chat_id": CHAT_ID, "caption": caption},
-            files={"photo": f},
-            timeout=60,
-        )
-    resp.raise_for_status()
-    data = resp.json()
-    if not data.get("ok"):
-        raise RuntimeError(data.get("description", "خطای نامشخص از تلگرام"))
+    send_telegram_message_with_chart(caption, symbol, all_prices)
+
+
+def send_approach_alert(symbol, title, target_price, current_price, dist_pct, all_prices):
+    now_str = datetime.now(TEHRAN).strftime("%Y-%m-%d %H:%M")
+    levels_text = "، ".join(f"{p:g}" for p in sorted(set(all_prices)))
+    caption = (
+        "🔔 نزدیک شدن به هشدار قیمت\n\n"
+        f"نماد: {symbol}\n"
+        f"شرکت: {title}\n"
+        f"قیمت هدف: {target_price}\n"
+        f"قیمت فعلی: {current_price}\n"
+        f"فاصله تا هدف: {dist_pct:.1f}٪\n"
+        f"سطوح هشدار این نماد: {levels_text}\n"
+        f"زمان: {now_str}"
+    )
+    send_telegram_message_with_chart(caption, symbol, all_prices)
 
 
 def main():
@@ -151,7 +177,6 @@ def main():
     alerts = load_alerts()
     changed = False
 
-    # تمام سطوح قیمتی هر نماد (برای رسم روی چارت) - شامل هشدارهای ارسال‌شده و فعال
     prices_by_symbol = {}
     for a in alerts:
         prices_by_symbol.setdefault(a["symbol"], []).append(float(a["targetPrice"]))
@@ -172,11 +197,11 @@ def main():
         target_price = float(alert["targetPrice"])
         condition = alert.get("condition", "gte")
         hit = current_price >= target_price if condition == "gte" else current_price <= target_price
+        all_prices = prices_by_symbol.get(symbol, [target_price])
 
         if hit:
             try:
-                all_prices = prices_by_symbol.get(symbol, [target_price])
-                send_telegram_alert(symbol, title, target_price, current_price, condition, all_prices)
+                send_hit_alert(symbol, title, target_price, current_price, condition, all_prices)
                 alert["triggered"] = True
                 alert["triggeredAt"] = datetime.now(TEHRAN).isoformat()
                 alert["priceAtTrigger"] = current_price
@@ -184,6 +209,18 @@ def main():
                 print(f"هشدار {symbol} ارسال شد.")
             except Exception as e:
                 print(f"ارسال تلگرام برای {symbol} ناموفق بود: {e}")
+            continue
+
+        if not alert.get("approachNotified"):
+            dist = distance_percent(current_price, target_price)
+            if dist is not None and dist <= APPROACH_THRESHOLD_PERCENT:
+                try:
+                    send_approach_alert(symbol, title, target_price, current_price, dist, all_prices)
+                    alert["approachNotified"] = True
+                    changed = True
+                    print(f"هشدار نزدیک‌شدن {symbol} ارسال شد.")
+                except Exception as e:
+                    print(f"ارسال هشدار نزدیک‌شدن برای {symbol} ناموفق بود: {e}")
 
     if changed:
         save_alerts(alerts)
