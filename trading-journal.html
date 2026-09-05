@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ژورنال معاملات</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#10141A">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10141A;
+    --panel:#171D26;
+    --panel-2:#1D2530;
+    --line:#2A323D;
+    --paper:#EDEFF2;
+    --muted:#8A94A3;
+    --accent:#C9973F;
+    --accent-ink:#2A2110;
+    --long:#3FB889;
+    --short:#DB5C50;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Vazirmatn',Tahoma,sans-serif;
+    font-size:15px;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    max-width:480px;
+    margin:0 auto;
+    padding:18px 16px 60px;
+  }
+  header.top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  header.top h1{
+    font-size:19px;
+    font-weight:800;
+    margin:0;
+    letter-spacing:.2px;
+  }
+  .status{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .dot.on{background:var(--long);}
+  .dot.off{background:var(--short);}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card h2{
+    font-size:14px;
+    font-weight:700;
+    margin:0 0 12px;
+    color:var(--paper);
+  }
+  .card h2 small{
+    display:block;
+    font-weight:400;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+
+  label.field{display:block;margin-bottom:12px;}
+  label.field span{
+    display:block;
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  input[type=text],input[type=number],textarea{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    padding:10px 12px;
+    font-family:inherit;
+    font-size:14.5px;
+    outline:none;
+  }
+  input:focus,textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:64px;}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+
+  .dirtoggle{display:flex;gap:8px;margin-bottom:12px;}
+  .dirtoggle button{
+    flex:1;
+    padding:10px 8px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--muted);
+    font-family:inherit;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .dirtoggle button.active.buy{background:rgba(63,184,137,.15);border-color:var(--long);color:var(--long);}
+  .dirtoggle button.active.sell{background:rgba(219,92,80,.15);border-color:var(--short);color:var(--short);}
+
+  .checklist-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 2px;
+    border-bottom:1px solid var(--line);
+  }
+  .checklist-item:last-child{border-bottom:none;}
+  .checklist-item input[type=checkbox]{
+    width:20px;height:20px;flex-shrink:0;accent-color:var(--accent);cursor:pointer;
+  }
+  .checklist-item span{flex:1;font-size:14px;}
+  .checklist-item button.rm{
+    background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 6px;
+  }
+  .addchecklist{
+    display:flex;gap:8px;margin-top:10px;
+  }
+  .addchecklist input{flex:1;}
+  .addchecklist button{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--paper);
+    border-radius:8px;padding:0 14px;font-family:inherit;cursor:pointer;font-size:14px;
+  }
+
+  .btn-primary{
+    width:100%;
+    background:var(--accent);
+    color:var(--accent-ink);
+    border:none;
+    border-radius:9px;
+    padding:13px 0;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-secondary{
+    width:100%;
+    background:transparent;
+    color:var(--paper);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:11px 0;
+    font-family:inherit;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  .note{font-size:12.5px;color:var(--muted);margin-top:8px;}
+  .error{
+    background:rgba(219,92,80,.12);
+    border:1px solid var(--short);
+    color:#F2B3AC;
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:13px;
+    margin-top:10px;
+  }
+  .success{
+    background:rgba(63,184,137,.12);
+    border:1px solid var(--long);
+    color:#B9EBD6;
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:13px;
+    margin-top:10px;
+  }
+
+  .togglebtn{
+    background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;
+    cursor:pointer;text-decoration:underline;padding:0;
+  }
+
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 4px;text-align:center;}
+  .stat b{display:block;font-size:17px;font-weight:800;color:var(--paper);}
+  .stat span{font-size:10.5px;color:var(--muted);}
+  .stat.pos b{color:var(--long);}
+
+  .rr-preview{font-size:12.5px;color:var(--accent);margin:-4px 0 12px;min-height:16px;}
+
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .filters input[type=text]{flex:1 1 100%;}
+  .filters select{
+    flex:1;min-width:88px;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);
+    border-radius:8px;padding:8px 6px;font-family:inherit;font-size:12px;
+  }
+
+  .export-row{display:flex;gap:8px;margin-top:4px;}
+  .export-row button,.export-row label{
+    flex:1;text-align:center;background:var(--panel-2);border:1px solid var(--line);color:var(--paper);
+    border-radius:8px;padding:9px 0;font-family:inherit;font-size:12.5px;cursor:pointer;margin:0;
+  }
+
+  .entry{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px;
+    margin-bottom:10px;
+    background:var(--panel);
+  }
+  .entry .erow{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;
+  }
+  .entry .sym{font-weight:800;font-size:15.5px;}
+  .entry .meta{color:var(--muted);font-size:12px;margin-top:2px;}
+  .badge{
+    font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap;
+  }
+  .badge.buy{background:rgba(63,184,137,.15);color:var(--long);}
+  .badge.sell{background:rgba(219,92,80,.15);color:var(--short);}
+  .badge.sent{background:rgba(201,151,63,.15);color:var(--accent);}
+  .badge.pending{background:var(--panel-2);color:var(--muted);}
+  .badge.win{background:rgba(63,184,137,.15);color:var(--long);}
+  .badge.loss{background:rgba(219,92,80,.15);color:var(--short);}
+  .badge.be{background:var(--panel-2);color:var(--muted);}
+  .tagrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .tag{font-size:11px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;}
+
+  .prices{display:flex;gap:14px;font-size:12.5px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap;}
+  .prices b{color:var(--paper);font-weight:600;}
+  .checkline{font-size:12.5px;color:var(--muted);margin-bottom:4px;}
+  .checkline.ok{color:var(--long);}
+  .checkline.no{color:var(--short);}
+  .notes{font-size:13px;color:var(--paper);margin:8px 0;white-space:pre-wrap;}
+
+  .entryactions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .entryactions select{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--paper);
+    border-radius:7px;padding:6px 8px;font-family:inherit;font-size:12.5px;
+  }
+  .entryactions button{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--paper);
+    border-radius:7px;padding:6px 10px;font-family:inherit;font-size:12.5px;cursor:pointer;
+  }
+  .entryactions button.danger{color:var(--short);border-color:rgba(219,92,80,.4);}
+
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:20px 0;}
+  .showpw{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;}
+  .pwrow{position:relative;}
+  .pwrow button{position:absolute;left:8px;top:8px;}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const STORAGE_KEYS = {
+  config: 'tj-telegram-config',
+  checklist: 'tj-checklist-template',
+  entries: 'tj-entries'
+};
+
+const DEFAULT_CHECKLIST = [
+  {id:'c1', label:'تشکیل پیوت (بالا/پایین)'},
+  {id:'c2', label:'تایید با کندل استیک'},
+  {id:'c3', label:'همسو با روند اصلی'},
+  {id:'c4', label:'واکنش به سطح حمایت/مقاومت'},
+  {id:'c5', label:'حجم معاملات مناسب'}
+];
+
+const SESSIONS = ['آسیا','لندن','نیویورک','همپوشانی لندن-نیویورک'];
+
+let state = {
+  config: {botToken:'', chatId:''},
+  checklistTemplate: DEFAULT_CHECKLIST,
+  entries: [],
+  formChecklist: [],
+  showToken: false,
+  settingsOpen: false,
+  statusMsg: null,
+  filters: {search:'', direction:'all', result:'all', strategy:'all'},
+  _formDirection: 'buy',
+  _formSession: ''
+};
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+async function loadState(){
+  try{
+    const cfg = await window.storage.get(STORAGE_KEYS.config, false);
+    if(cfg && cfg.value) state.config = JSON.parse(cfg.value);
+  }catch(e){}
+  try{
+    const cl = await window.storage.get(STORAGE_KEYS.checklist, false);
+    if(cl && cl.value) state.checklistTemplate = JSON.parse(cl.value);
+  }catch(e){}
+  try{
+    const en = await window.storage.get(STORAGE_KEYS.entries, false);
+    if(en && en.value) state.entries = JSON.parse(en.value);
+  }catch(e){}
+  state.formChecklist = state.checklistTemplate.map(c=>({...c, checked:false}));
+  state.settingsOpen = !(state.config.botToken && state.config.chatId);
+  render();
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+}
+
+async function saveConfig(){ await window.storage.set(STORAGE_KEYS.config, JSON.stringify(state.config), false); }
+async function saveChecklistTemplate(){ await window.storage.set(STORAGE_KEYS.checklist, JSON.stringify(state.checklistTemplate), false); }
+async function saveEntries(){ await window.storage.set(STORAGE_KEYS.entries, JSON.stringify(state.entries), false); }
+
+function escapeHtml(str){
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAttr(str){ return escapeHtml(str).replace(/"/g,'&quot;'); }
+
+function directionLabel(dir){ return dir==='buy' ? 'خرید (Long) 📈' : 'فروش (Short) 📉'; }
+function resultLabel(r){ return {pending:'در انتظار ⏳', win:'سود ✅', loss:'ضرر ❌', be:'سربه‌سر ➖'}[r] || 'در انتظار ⏳'; }
+
+function computeRR(entryPrice, stopLoss, takeProfit){
+  const e = parseFloat(entryPrice), sl = parseFloat(stopLoss), tp = parseFloat(takeProfit);
+  if(isNaN(e) || isNaN(sl) || isNaN(tp)) return null;
+  const risk = Math.abs(e-sl), reward = Math.abs(tp-e);
+  if(risk <= 0) return null;
+  return (reward/risk).toFixed(2);
+}
+
+function updateRRPreview(){
+  const e = document.getElementById('inp-entry').value;
+  const sl = document.getElementById('inp-sl').value;
+  const tp = document.getElementById('inp-tp').value;
+  const rr = computeRR(e, sl, tp);
+  const el = document.getElementById('rr-preview-val');
+  if(el) el.textContent = rr ? ('نسبت ریسک به ریوارد: 1 : ' + rr) : '';
+}
+
+function buildMessageText(entry){
+  const lines = [];
+  lines.push('<b>📊 تحلیل معامله</b>');
+  lines.push('');
+  lines.push('<b>نماد:</b> ' + escapeHtml(entry.symbol||'-'));
+  lines.push('<b>تایم‌فریم:</b> ' + escapeHtml(entry.timeframe||'-'));
+  lines.push('<b>جهت:</b> ' + directionLabel(entry.direction));
+  if(entry.strategy) lines.push('<b>استراتژی:</b> ' + escapeHtml(entry.strategy));
+  if(entry.session) lines.push('<b>سشن:</b> ' + escapeHtml(entry.session));
+  lines.push('');
+  lines.push('<b>چک‌لیست ورود:</b>');
+  entry.checklist.forEach(c=>{ lines.push((c.checked?'✅':'❌') + ' ' + escapeHtml(c.label)); });
+  lines.push('');
+  lines.push('<b>قیمت ورود:</b> ' + escapeHtml(entry.entryPrice||'-'));
+  lines.push('<b>حد ضرر:</b> ' + escapeHtml(entry.stopLoss||'-'));
+  lines.push('<b>حد سود:</b> ' + escapeHtml(entry.takeProfit||'-'));
+  if(entry.rr) lines.push('<b>نسبت R:R:</b> 1 : ' + entry.rr);
+  if(entry.lotSize) lines.push('<b>حجم/لات:</b> ' + escapeHtml(entry.lotSize));
+  if(entry.riskPercent) lines.push('<b>ریسک:</b> ' + escapeHtml(entry.riskPercent) + '٪');
+  if(entry.notes){
+    lines.push('');
+    lines.push('<b>یادداشت:</b>');
+    lines.push(escapeHtml(entry.notes));
+  }
+  lines.push('');
+  lines.push('<b>نتیجه:</b> ' + resultLabel(entry.result));
+  return lines.join('\n');
+}
+
+async function tgCall(method, body){
+  const {botToken} = state.config;
+  const url = 'https://api.telegram.org/bot' + botToken + '/' + method;
+  const resp = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await resp.json();
+  if(!data.ok) throw new Error(data.description || 'خطای نامشخص از تلگرام');
+  return data.result;
+}
+
+async function sendEntryToTelegram(entry){
+  const result = await tgCall('sendMessage', { chat_id: state.config.chatId, text: buildMessageText(entry), parse_mode: 'HTML' });
+  return result.message_id;
+}
+async function editEntryOnTelegram(entry){
+  await tgCall('editMessageText', { chat_id: state.config.chatId, message_id: entry.messageId, text: buildMessageText(entry), parse_mode: 'HTML' });
+}
+
+// ---------- Settings ----------
+
+async function onSaveSettings(){
+  const token = document.getElementById('inp-token').value.trim();
+  const chatId = document.getElementById('inp-chatid').value.trim();
+  state.config = {botToken:token, chatId:chatId};
+  await saveConfig();
+  state.statusMsg = {type:'success', text:'تنظیمات ذخیره شد.'};
+  render();
+}
+async function onTestConnection(){
+  state.statusMsg = null; render();
+  try{
+    if(!state.config.botToken || !state.config.chatId) throw new Error('ابتدا توکن و آیدی چت را وارد و ذخیره کنید.');
+    await tgCall('sendMessage', {chat_id: state.config.chatId, text:'✅ اتصال ژورنال معاملات با موفقیت برقرار شد.'});
+    state.statusMsg = {type:'success', text:'پیام آزمایشی با موفقیت ارسال شد.'};
+  }catch(e){ state.statusMsg = {type:'error', text:'خطا: ' + e.message}; }
+  render();
+}
+function onToggleSettings(){ state.settingsOpen = !state.settingsOpen; render(); }
+function onToggleShowToken(){ state.showToken = !state.showToken; render(); }
+
+// ---------- Form ----------
+
+function onDirectionSelect(dir){ state._formDirection = dir; render(); }
+function onFormChecklistToggle(id){
+  const item = state.formChecklist.find(c=>c.id===id);
+  if(item) item.checked = !item.checked;
+  render();
+}
+async function onFormChecklistAdd(){
+  const inp = document.getElementById('inp-new-check');
+  const label = inp.value.trim();
+  if(!label) return;
+  const newItem = {id: uid(), label};
+  state.checklistTemplate.push(newItem);
+  state.formChecklist.push({...newItem, checked:false});
+  await saveChecklistTemplate();
+  render();
+}
+async function onFormChecklistRemove(id){
+  state.checklistTemplate = state.checklistTemplate.filter(c=>c.id!==id);
+  state.formChecklist = state.formChecklist.filter(c=>c.id!==id);
+  await saveChecklistTemplate();
+  render();
+}
+
+async function onSubmitEntry(){
+  const symbol = document.getElementById('inp-symbol').value.trim();
+  const timeframe = document.getElementById('inp-tf').value.trim();
+  const entryPrice = document.getElementById('inp-entry').value.trim();
+  const stopLoss = document.getElementById('inp-sl').value.trim();
+  const takeProfit = document.getElementById('inp-tp').value.trim();
+  const lotSize = document.getElementById('inp-lot').value.trim();
+  const riskPercent = document.getElementById('inp-risk').value.trim();
+  const strategy = document.getElementById('inp-strategy').value.trim();
+  const notes = document.getElementById('inp-notes').value.trim();
+  const direction = state._formDirection || 'buy';
+  const session = state._formSession || '';
+
+  if(!symbol){ state.statusMsg = {type:'error', text:'نام نماد را وارد کنید.'}; render(); return; }
+  if(!state.config.botToken || !state.config.chatId){
+    state.statusMsg = {type:'error', text:'ابتدا در بخش تنظیمات، توکن بات و آیدی کانال را وارد کنید.'};
+    state.settingsOpen = true; render(); return;
+  }
+
+  const entry = {
+    id: uid(),
+    createdAt: new Date().toISOString(),
+    symbol, timeframe, direction, strategy, session,
+    checklist: state.formChecklist.map(c=>({id:c.id, label:c.label, checked:c.checked})),
+    entryPrice, stopLoss, takeProfit,
+    rr: computeRR(entryPrice, stopLoss, takeProfit),
+    lotSize, riskPercent, notes,
+    result:'pending', messageId:null, sendError:null
+  };
+
+  state.entries.unshift(entry);
+  await saveEntries();
+
+  try{
+    entry.messageId = await sendEntryToTelegram(entry);
+    state.statusMsg = {type:'success', text:'تحلیل ثبت و به تلگرام ارسال شد.'};
+  }catch(e){
+    entry.sendError = e.message;
+    state.statusMsg = {type:'error', text:'تحلیل ذخیره شد اما ارسال به تلگرام ناموفق بود: ' + e.message};
+  }
+  await saveEntries();
+
+  ['inp-symbol','inp-tf','inp-entry','inp-sl','inp-tp','inp-lot','inp-risk','inp-strategy','inp-notes'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  state._formDirection = 'buy';
+  state._formSession = '';
+  state.formChecklist = state.checklistTemplate.map(c=>({...c, checked:false}));
+  render();
+}
+
+// ---------- History / filters ----------
+
+function distinctStrategies(){
+  return Array.from(new Set(state.entries.map(e=>e.strategy).filter(Boolean)));
+}
+
+function onFilterChange(){
+  state.filters.search = document.getElementById('flt-search').value.trim().toLowerCase();
+  state.filters.direction = document.getElementById('flt-dir').value;
+  state.filters.result = document.getElementById('flt-result').value;
+  state.filters.strategy = document.getElementById('flt-strategy').value;
+  renderEntriesList();
+}
+
+function filteredEntries(){
+  const f = state.filters;
+  return state.entries.filter(e=>{
+    if(f.direction!=='all' && e.direction!==f.direction) return false;
+    if(f.result!=='all' && e.result!==f.result) return false;
+    if(f.strategy!=='all' && e.strategy!==f.strategy) return false;
+    if(f.search){
+      const hay = (e.symbol+' '+(e.notes||'')+' '+(e.strategy||'')).toLowerCase();
+      if(!hay.includes(f.search)) return false;
+    }
+    return true;
+  });
+}
+
+function fmtDate(iso){
+  try{ return new Date(iso).toLocaleString('fa-IR', {dateStyle:'short', timeStyle:'short'}); }catch(e){ return iso; }
+}
+
+function entryCardHtml(e){
+  const sentBadge = e.messageId ? `<span class="badge sent">ارسال شد ✓</span>` : `<span class="badge pending">${e.sendError ? 'ارسال ناموفق' : 'ارسال نشده'}</span>`;
+  const checklistLines = e.checklist.map(c=>`<div class="checkline ${c.checked?'ok':'no'}">${c.checked?'✅':'❌'} ${escapeHtml(c.label)}</div>`).join('');
+  const tags = [];
+  if(e.strategy) tags.push(`<span class="tag">${escapeHtml(e.strategy)}</span>`);
+  if(e.session) tags.push(`<span class="tag">${escapeHtml(e.session)}</span>`);
+  if(e.rr) tags.push(`<span class="tag">R:R 1:${e.rr}</span>`);
+  if(e.lotSize) tags.push(`<span class="tag">حجم ${escapeHtml(e.lotSize)}</span>`);
+  if(e.riskPercent) tags.push(`<span class="tag">ریسک ${escapeHtml(e.riskPercent)}٪</span>`);
+  return `
+    <div class="entry">
+      <div class="erow">
+        <div>
+          <div class="sym">${escapeHtml(e.symbol)} <span class="badge ${e.direction}">${e.direction==='buy'?'خرید':'فروش'}</span></div>
+          <div class="meta">${fmtDate(e.createdAt)} ${e.timeframe ? '· '+escapeHtml(e.timeframe) : ''}</div>
+        </div>
+        ${sentBadge}
+      </div>
+      ${tags.length ? `<div class="tagrow">${tags.join('')}</div>` : ''}
+      <div class="prices">
+        <span>ورود: <b>${escapeHtml(e.entryPrice||'-')}</b></span>
+        <span>حد ضرر: <b>${escapeHtml(e.stopLoss||'-')}</b></span>
+        <span>حد سود: <b>${escapeHtml(e.takeProfit||'-')}</b></span>
+      </div>
+      ${checklistLines}
+      ${e.notes ? `<div class="notes">${escapeHtml(e.notes)}</div>` : ''}
+      ${e.sendError ? `<div class="error">${escapeHtml(e.sendError)}</div>` : ''}
+      <div class="entryactions">
+        <select onchange="onResultChange('${e.id}', this.value)">
+          <option value="pending" ${e.result==='pending'?'selected':''}>در انتظار</option>
+          <option value="win" ${e.result==='win'?'selected':''}>سود</option>
+          <option value="loss" ${e.result==='loss'?'selected':''}>ضرر</option>
+          <option value="be" ${e.result==='be'?'selected':''}>سربه‌سر</option>
+        </select>
+        <button onclick="onResend('${e.id}')">${e.messageId ? 'بروزرسانی در تلگرام' : 'ارسال به تلگرام'}</button>
+        <button class="danger" onclick="onDeleteEntry('${e.id}')">حذف</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderEntriesList(){
+  const list = filteredEntries();
+  const el = document.getElementById('entries-list');
+  if(!el) return;
+  el.innerHTML = list.length ? list.map(entryCardHtml).join('') : `<div class="empty">موردی با این فیلتر یافت نشد.</div>`;
+}
+
+async function onResend(id){
+  const entry = state.entries.find(e=>e.id===id);
+  if(!entry) return;
+  try{
+    if(entry.messageId) await editEntryOnTelegram(entry);
+    else entry.messageId = await sendEntryToTelegram(entry);
+    entry.sendError = null;
+    state.statusMsg = {type:'success', text:'پیام تلگرام بروزرسانی شد.'};
+  }catch(e){
+    entry.sendError = e.message;
+    state.statusMsg = {type:'error', text:'خطا در ارسال: ' + e.message};
+  }
+  await saveEntries();
+  render();
+}
+
+async function onResultChange(id, val){
+  const entry = state.entries.find(e=>e.id===id);
+  if(!entry) return;
+  entry.result = val;
+  await saveEntries();
+  render();
+  if(entry.messageId){ try{ await editEntryOnTelegram(entry); }catch(e){} }
+}
+
+async function onDeleteEntry(id){
+  state.entries = state.entries.filter(e=>e.id!==id);
+  await saveEntries();
+  render();
+}
+
+// ---------- Export / import ----------
+
+function csvEscape(v){
+  const s = (v==null?'':String(v));
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+function exportCSV(){
+  const headers = ['تاریخ','نماد','تایم‌فریم','جهت','استراتژی','سشن','قیمت ورود','حد ضرر','حد سود','R:R','حجم','ریسک٪','نتیجه','یادداشت'];
+  const rows = state.entries.map(e=>[
+    fmtDate(e.createdAt), e.symbol, e.timeframe, e.direction==='buy'?'خرید':'فروش',
+    e.strategy||'', e.session||'', e.entryPrice||'', e.stopLoss||'', e.takeProfit||'',
+    e.rr ? ('1:'+e.rr) : '', e.lotSize||'', e.riskPercent||'', resultLabel(e.result), e.notes||''
+  ]);
+  const csv = '\uFEFF' + [headers, ...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'trading-journal.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportBackup(){
+  const backup = { checklistTemplate: state.checklistTemplate, entries: state.entries, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'trading-journal-backup.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function triggerImport(){ document.getElementById('imp-file').click(); }
+
+async function onImportBackup(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(Array.isArray(data.entries)){
+      const existingIds = new Set(state.entries.map(e=>e.id));
+      const merged = data.entries.filter(e=>!existingIds.has(e.id));
+      state.entries = [...merged, ...state.entries];
+      await saveEntries();
+    }
+    if(Array.isArray(data.checklistTemplate)){
+      const existingIds = new Set(state.checklistTemplate.map(c=>c.id));
+      const mergedC = data.checklistTemplate.filter(c=>!existingIds.has(c.id));
+      state.checklistTemplate = [...state.checklistTemplate, ...mergedC];
+      state.formChecklist = state.checklistTemplate.map(c=>({...c, checked:false}));
+      await saveChecklistTemplate();
+    }
+    state.statusMsg = {type:'success', text:'بکاپ با موفقیت بازیابی شد.'};
+  }catch(e){
+    state.statusMsg = {type:'error', text:'فایل بکاپ نامعتبر است.'};
+  }
+  ev.target.value = '';
+  render();
+}
+
+// ---------- Render ----------
+
+function render(){
+  const configured = state.config.botToken && state.config.chatId;
+  const app = document.getElementById('app');
+
+  const settingsHtml = `
+    <div class="card">
+      <h2>تنظیمات تلگرام<small>توکن بات و آیدی کانال یا چت مقصد را وارد کنید</small></h2>
+      ${state.settingsOpen ? `
+        <label class="field">
+          <span>توکن بات (از BotFather@)</span>
+          <div class="pwrow">
+            <input type="${state.showToken?'text':'password'}" id="inp-token" value="${escapeAttr(state.config.botToken)}" placeholder="123456:ABC-DEF...">
+            <button class="showpw" onclick="onToggleShowToken()">${state.showToken?'پنهان':'نمایش'}</button>
+          </div>
+        </label>
+        <label class="field">
+          <span>آیدی کانال یا چت (مثال: @mychannel یا -1001234567890)</span>
+          <input type="text" id="inp-chatid" value="${escapeAttr(state.config.chatId)}" placeholder="@channel_username">
+        </label>
+        <button class="btn-secondary" onclick="onSaveSettings()">ذخیره تنظیمات</button>
+        <button class="btn-secondary" style="margin-top:8px" onclick="onTestConnection()">ارسال پیام آزمایشی</button>
+        <div class="note">بات باید ادمین کانال باشد تا اجازه ارسال پیام داشته باشد.</div>
+      ` : `<button class="togglebtn" onclick="onToggleSettings()">ویرایش تنظیمات</button>`}
+    </div>
+  `;
+
+  const total = state.entries.length;
+  const wins = state.entries.filter(e=>e.result==='win').length;
+  const losses = state.entries.filter(e=>e.result==='loss').length;
+  const decided = wins+losses;
+  const winRate = decided>0 ? Math.round(wins/decided*100) : null;
+  const dashboardHtml = `
+    <div class="card">
+      <h2>آمار و عملکرد</h2>
+      <div class="stats-grid">
+        <div class="stat"><b>${total}</b><span>کل معاملات</span></div>
+        <div class="stat pos"><b>${winRate!==null ? winRate+'٪' : '—'}</b><span>درصد برد</span></div>
+        <div class="stat"><b>${wins}</b><span>برد</span></div>
+        <div class="stat"><b>${losses}</b><span>باخت</span></div>
+      </div>
+    </div>
+  `;
+
+  const checklistHtml = state.formChecklist.map(c=>`
+    <div class="checklist-item">
+      <input type="checkbox" ${c.checked?'checked':''} onchange="onFormChecklistToggle('${c.id}')">
+      <span>${escapeHtml(c.label)}</span>
+      <button class="rm" onclick="onFormChecklistRemove('${c.id}')" title="حذف از چک‌لیست">✕</button>
+    </div>
+  `).join('') || `<div class="note">چک‌لیستی وجود ندارد.</div>`;
+
+  const dir = state._formDirection || 'buy';
+  const strategyOptions = distinctStrategies().map(s=>`<option value="${escapeAttr(s)}">`).join('');
+  const sessionOptionsHtml = SESSIONS.map(s=>`<option value="${escapeAttr(s)}" ${state._formSession===s?'selected':''}>${escapeHtml(s)}</option>`).join('');
+
+  const formHtml = `
+    <div class="card">
+      <h2>ثبت تحلیل جدید</h2>
+      <div class="row2">
+        <label class="field"><span>نماد</span>
+          <input type="text" id="inp-symbol" list="symbol-list" placeholder="مثلاً فولاد، خودرو یا XAUUSD">
+          <datalist id="symbol-list">
+            <option value="فولاد"><option value="فملی"><option value="خودرو"><option value="خساپا">
+            <option value="شپنا"><option value="شستا"><option value="فارس"><option value="وبملت">
+            <option value="وتجارت"><option value="وبصادر"><option value="رمپنا"><option value="کگل">
+            <option value="کچاد"><option value="شبندر"><option value="اخابر"><option value="همراه">
+            <option value="وغدیر"><option value="پترول"><option value="شتران"><option value="وپارس">
+          </datalist>
+        </label>
+        <label class="field"><span>تایم‌فریم</span><input type="text" id="inp-tf" placeholder="مثلاً H1"></label>
+      </div>
+      <div class="dirtoggle">
+        <button class="${dir==='buy'?'active buy':''}" onclick="onDirectionSelect('buy')">خرید</button>
+        <button class="${dir==='sell'?'active sell':''}" onclick="onDirectionSelect('sell')">فروش</button>
+      </div>
+
+      <div class="row2">
+        <label class="field"><span>استراتژی</span>
+          <input type="text" id="inp-strategy" list="strategy-list" placeholder="مثلاً شکست پیوت">
+          <datalist id="strategy-list">${strategyOptions}</datalist>
+        </label>
+        <label class="field"><span>سشن معاملاتی</span>
+          <select id="inp-session" onchange="state._formSession=this.value">
+            <option value="">—</option>
+            ${sessionOptionsHtml}
+          </select>
+        </label>
+      </div>
+
+      <label class="field" style="margin-bottom:6px;"><span>چک‌لیست شرایط ورود</span></label>
+      ${checklistHtml}
+      <div class="addchecklist">
+        <input type="text" id="inp-new-check" placeholder="افزودن شرط جدید...">
+        <button onclick="onFormChecklistAdd()">افزودن</button>
+      </div>
+
+      <div class="row3" style="margin-top:14px;">
+        <label class="field"><span>قیمت ورود</span><input type="text" id="inp-entry" oninput="updateRRPreview()" placeholder="0.00"></label>
+        <label class="field"><span>حد ضرر</span><input type="text" id="inp-sl" oninput="updateRRPreview()" placeholder="0.00"></label>
+        <label class="field"><span>حد سود</span><input type="text" id="inp-tp" oninput="updateRRPreview()" placeholder="0.00"></label>
+      </div>
+      <div class="rr-preview" id="rr-preview-val"></div>
+
+      <div class="row2">
+        <label class="field"><span>حجم/لات</span><input type="text" id="inp-lot" placeholder="مثلاً 0.5"></label>
+        <label class="field"><span>ریسک از سرمایه (٪)</span><input type="text" id="inp-risk" placeholder="مثلاً 1"></label>
+      </div>
+
+      <label class="field"><span>یادداشت تحلیل</span><textarea id="inp-notes" placeholder="توضیح تحلیل، دلیل ورود و..."></textarea></label>
+
+      <button class="btn-primary" id="btn-submit" onclick="onSubmitEntry()">ثبت و ارسال به تلگرام</button>
+      ${!configured ? '<div class="note">⚠️ تنظیمات تلگرام کامل نشده؛ تحلیل ذخیره می‌شود اما ارسال نخواهد شد.</div>' : ''}
+    </div>
+  `;
+
+  const statusHtml = state.statusMsg ? `<div class="${state.statusMsg.type}">${escapeHtml(state.statusMsg.text)}</div>` : '';
+
+  const strategyFilterOptions = distinctStrategies().map(s=>`<option value="${escapeAttr(s)}" ${state.filters.strategy===s?'selected':''}>${escapeHtml(s)}</option>`).join('');
+
+  app.innerHTML = `
+    <header class="top">
+      <h1>ژورنال معاملات</h1>
+      <div class="status">
+        <span class="dot ${configured?'on':'off'}"></span>
+        ${configured?'متصل به تلگرام':'تلگرام پیکربندی نشده'}
+      </div>
+    </header>
+    ${settingsHtml}
+    ${statusHtml}
+    ${dashboardHtml}
+    ${formHtml}
+    <div class="card">
+      <h2>تاریخچه ژورنال<small>${state.entries.length} تحلیل ثبت‌شده</small></h2>
+      <div class="filters">
+        <input type="text" id="flt-search" placeholder="جستجو در نماد / یادداشت..." value="${escapeAttr(state.filters.search)}" oninput="onFilterChange()">
+        <select id="flt-dir" onchange="onFilterChange()">
+          <option value="all" ${state.filters.direction==='all'?'selected':''}>همه جهت‌ها</option>
+          <option value="buy" ${state.filters.direction==='buy'?'selected':''}>خرید</option>
+          <option value="sell" ${state.filters.direction==='sell'?'selected':''}>فروش</option>
+        </select>
+        <select id="flt-result" onchange="onFilterChange()">
+          <option value="all" ${state.filters.result==='all'?'selected':''}>همه نتایج</option>
+          <option value="pending" ${state.filters.result==='pending'?'selected':''}>در انتظار</option>
+          <option value="win" ${state.filters.result==='win'?'selected':''}>سود</option>
+          <option value="loss" ${state.filters.result==='loss'?'selected':''}>ضرر</option>
+          <option value="be" ${state.filters.result==='be'?'selected':''}>سربه‌سر</option>
+        </select>
+        <select id="flt-strategy" onchange="onFilterChange()">
+          <option value="all" ${state.filters.strategy==='all'?'selected':''}>همه استراتژی‌ها</option>
+          ${strategyFilterOptions}
+        </select>
+      </div>
+      <div id="entries-list"></div>
+      <div class="export-row" style="margin-top:12px;">
+        <button onclick="exportCSV()">دانلود CSV</button>
+        <button onclick="exportBackup()">دانلود بکاپ</button>
+        <label onclick="triggerImport()">بازیابی بکاپ</label>
+      </div>
+      <input type="file" id="imp-file" accept="application/json" style="display:none" onchange="onImportBackup(event)">
+    </div>
+  `;
+
+  renderEntriesList();
+}
+
+loadState();
+</script>
+</body>
+</html>
