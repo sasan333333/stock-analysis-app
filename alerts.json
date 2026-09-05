@@ -6,5 +6,13 @@
     "condition": "gte",
     "createdAt": "2026-09-05T10:17:08.832Z",
     "triggered": false
+  },
+  {
+    "id": "ovuem6o",
+    "symbol": "شپنا",
+    "targetPrice": "12940",
+    "condition": "gte",
+    "createdAt": "2026-09-05T10:23:28.397Z",
+    "triggered": false
   }
 ]
