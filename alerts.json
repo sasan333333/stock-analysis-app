@@ -14,5 +14,13 @@
     "condition": "gte",
     "createdAt": "2026-09-05T10:23:28.397Z",
     "triggered": false
+  },
+  {
+    "id": "yetx77y",
+    "symbol": "شپنا",
+    "targetPrice": "12940",
+    "condition": "gte",
+    "createdAt": "2026-09-05T10:38:39.248Z",
+    "triggered": false
   }
 ]
