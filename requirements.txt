@@ -1,0 +1,4 @@
+pytse_client
+mplfinance
+pandas
+requests

@@ -2,7 +2,7 @@
   "name": "ژورنال معاملات",
   "short_name": "ژورنال",
   "description": "ژورنال‌نویسی ترید با ارسال خودکار به تلگرام",
-  "start_url": "./trading-journal.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
