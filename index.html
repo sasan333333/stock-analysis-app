@@ -67,6 +67,11 @@
 <script>
 const STORAGE_KEY = 'sa-github-config';
 
+const FALLBACK_SYMBOLS = [
+  'فولاد','فملی','خودرو','خساپا','شپنا','شستا','فارس','وبملت','وتجارت','وبصادر',
+  'رمپنا','کگل','کچاد','شبندر','اخابر','همراه','وغدیر','پترول','شتران','وپارس'
+];
+
 let state = {
   config: {token:'', repo:''},
   showToken: false,
@@ -75,21 +80,41 @@ let state = {
   alerts: [],
   alertsSha: null,
   loading: false,
+  allSymbols: FALLBACK_SYMBOLS,
   _condition: 'gte'
 };
 
-async function loadState(){
+function loadConfigFromLocalStorage(){
   try{
-    const cfg = await window.storage.get(STORAGE_KEY, false);
-    if(cfg && cfg.value) state.config = JSON.parse(cfg.value);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) state.config = JSON.parse(raw);
   }catch(e){}
+}
+function saveConfigToLocalStorage(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state.config)); }catch(e){}
+}
+
+async function loadSymbolsList(){
+  try{
+    const res = await fetch('symbols.json', {cache:'no-store'});
+    if(res.ok){
+      const list = await res.json();
+      if(Array.isArray(list) && list.length) state.allSymbols = list;
+    }
+  }catch(e){}
+}
+
+async function loadState(){
+  loadConfigFromLocalStorage();
   state.settingsOpen = !(state.config.token && state.config.repo);
   render();
+
+  await loadSymbolsList();
+  render();
+
   if(state.config.token && state.config.repo) await refreshAlerts();
   if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 }
-
-async function saveConfig(){ await window.storage.set(STORAGE_KEY, JSON.stringify(state.config), false); }
 
 function escapeHtml(str){ return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeAttr(str){ return escapeHtml(str).replace(/"/g,'&quot;'); }
@@ -120,12 +145,25 @@ async function ghPut(path, obj, sha, message){
   return await res.json();
 }
 
+async function ghDispatchWorkflow(workflowFile, inputs){
+  const {token, repo} = state.config;
+  const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflowFile}/dispatches`, {
+    method:'POST',
+    headers:{Authorization:`Bearer ${token}`, Accept:'application/vnd.github+json', 'Content-Type':'application/json'},
+    body: JSON.stringify({ref:'main', inputs})
+  });
+  if(res.status!==204){
+    const e = await res.json().catch(()=>({}));
+    throw new Error(e.message || ('خطا: '+res.status));
+  }
+}
+
 async function onSaveSettings(){
   const token = document.getElementById('inp-token').value.trim();
   const repo = document.getElementById('inp-repo').value.trim();
   state.config = {token, repo};
-  await saveConfig();
-  state.statusMsg = {type:'success', text:'تنظیمات ذخیره شد.'};
+  saveConfigToLocalStorage();
+  state.statusMsg = {type:'success', text:'تنظیمات ذخیره شد و در همین مرورگر می‌ماند.'};
   render();
   await refreshAlerts();
 }
@@ -168,7 +206,8 @@ async function onAddAlert(){
       id: Math.random().toString(36).slice(2,9),
       symbol, targetPrice, condition,
       createdAt: new Date().toISOString(),
-      triggered:false
+      triggered:false,
+      approachNotified:false
     });
     await ghPut('alerts.json', alerts, sha, `افزودن هشدار: ${symbol} @ ${targetPrice}`);
     state.alerts = alerts;
@@ -197,13 +236,37 @@ async function onDeleteAlert(id){
   render();
 }
 
+async function onRequestLiveChart(){
+  const symbol = document.getElementById('inp-live-symbol').value.trim();
+  if(!symbol){
+    state.statusMsg = {type:'error', text:'نماد را برای نمایش چارت وارد کنید.'};
+    render(); return;
+  }
+  if(!state.config.token || !state.config.repo){
+    state.statusMsg = {type:'error', text:'ابتدا تنظیمات گیت‌هاب را کامل کنید.'};
+    state.settingsOpen = true; render(); return;
+  }
+  state.loading = true; render();
+  try{
+    await ghDispatchWorkflow('show-chart.yml', {symbol});
+    state.statusMsg = {type:'success', text:'درخواست ارسال شد؛ تا حدود یک دقیقه دیگر چارت این نماد (همراه با تمام هشدارهای ثبت‌شده‌اش) در تلگرام می‌آید.'};
+    document.getElementById('inp-live-symbol').value='';
+  }catch(e){
+    state.statusMsg = {type:'error', text:'خطا در درخواست چارت: ' + e.message + ' — توکن باید دسترسی Actions (Read and write) هم داشته باشد.'};
+  }
+  state.loading = false;
+  render();
+}
+
 function fmtDate(iso){
   try{ return new Date(iso).toLocaleString('fa-IR', {dateStyle:'short', timeStyle:'short'}); }catch(e){ return iso; }
 }
 
 function alertCardHtml(a){
   const condText = a.condition==='gte' ? 'رسیدن به قیمت یا بالاتر ↑' : 'رسیدن به قیمت یا پایین‌تر ↓';
-  const badge = a.triggered ? `<span class="badge done">ارسال شد ✓</span>` : `<span class="badge active">فعال</span>`;
+  const badge = a.triggered
+    ? `<span class="badge done">ارسال شد ✓</span>`
+    : (a.approachNotified ? `<span class="badge active">نزدیک هدف ⚡</span>` : `<span class="badge active">فعال</span>`);
   return `
     <div class="alert-item">
       <div class="erow">
@@ -228,12 +291,12 @@ function render(){
 
   const settingsHtml = `
     <div class="card">
-      <h2>تنظیمات گیت‌هاب<small>برای ذخیره لیست هشدارها روی مخزن پروژه</small></h2>
+      <h2>تنظیمات گیت‌هاب<small>یک‌بار وارد کن؛ در همین مرورگر ذخیره می‌ماند</small></h2>
       ${state.settingsOpen ? `
         <label class="field">
           <span>توکن دسترسی گیت‌هاب (Personal Access Token)</span>
           <div class="pwrow">
-            <input type="${state.showToken?'text':'password'}" id="inp-token" value="${escapeAttr(state.config.token)}" placeholder="ghp_...">
+            <input type="${state.showToken?'text':'password'}" id="inp-token" value="${escapeAttr(state.config.token)}" placeholder="github_pat_...">
             <button class="showpw" onclick="onToggleShowToken()">${state.showToken?'پنهان':'نمایش'}</button>
           </div>
         </label>
@@ -242,7 +305,7 @@ function render(){
           <input type="text" id="inp-repo" value="${escapeAttr(state.config.repo)}" placeholder="username/repo-name">
         </label>
         <button class="btn-secondary" onclick="onSaveSettings()">ذخیره و بارگذاری</button>
-        <div class="note">توکن باید دسترسی Contents (Read and Write) روی همین مخزن داشته باشد. توکن فقط در همین مرورگر شما ذخیره می‌شود.</div>
+        <div class="note">توکن باید دسترسی Contents (Read and write) و Actions (Read and write) روی همین مخزن داشته باشد. توکن فقط در همین مرورگر (localStorage) ذخیره می‌شود و دیگر لازم نیست دوباره واردش کنی.</div>
       ` : `<button class="togglebtn" onclick="onToggleSettings()">ویرایش تنظیمات</button>`}
     </div>
   `;
@@ -261,18 +324,14 @@ function render(){
     </div>
   `;
 
+  const symbolOptionsHtml = state.allSymbols.map(s=>`<option value="${escapeAttr(s)}">`).join('');
+  const sharedDatalist = `<datalist id="symbol-list">${symbolOptionsHtml}</datalist>`;
+
   const formHtml = `
     <div class="card">
       <h2>افزودن هشدار جدید</h2>
       <label class="field"><span>نماد</span>
-        <input type="text" id="inp-symbol" list="symbol-list" placeholder="مثلاً فولاد">
-        <datalist id="symbol-list">
-          <option value="فولاد"><option value="فملی"><option value="خودرو"><option value="خساپا">
-          <option value="شپنا"><option value="شستا"><option value="فارس"><option value="وبملت">
-          <option value="وتجارت"><option value="وبصادر"><option value="رمپنا"><option value="کگل">
-          <option value="کچاد"><option value="شبندر"><option value="اخابر"><option value="همراه">
-          <option value="وغدیر"><option value="پترول"><option value="شتران"><option value="وپارس">
-        </datalist>
+        <input type="text" id="inp-symbol" list="symbol-list" placeholder="مثلاً شپ برای دیدن پیشنهادها">
       </label>
       <div class="row2">
         <label class="field"><span>قیمت هدف</span><input type="text" id="inp-price" placeholder="مثلاً 4500"></label>
@@ -288,6 +347,17 @@ function render(){
     </div>
   `;
 
+  const liveChartHtml = `
+    <div class="card">
+      <h2>نمایش چارت لحظه‌ای<small>چه در ساعات بازار چه خارج از آن — نتیجه به تلگرام ارسال می‌شود</small></h2>
+      <label class="field"><span>نماد</span>
+        <input type="text" id="inp-live-symbol" list="symbol-list" placeholder="مثلاً شپنا">
+      </label>
+      <button class="btn-secondary" onclick="onRequestLiveChart()" ${state.loading?'disabled':''}>ارسال چارت به تلگرام</button>
+      <div class="note">چارت ۲ ماه اخیر (روزانه) به همراه خط تمام هشدارهای ثبت‌شده همین نماد فرستاده می‌شود؛ معمولاً کمتر از یک دقیقه طول می‌کشد.</div>
+    </div>
+  `;
+
   const statusHtml = state.statusMsg ? `<div class="${state.statusMsg.type}">${escapeHtml(state.statusMsg.text)}</div>` : '';
 
   const listHtml = state.alerts.length
@@ -295,6 +365,7 @@ function render(){
     : `<div class="empty">هنوز هشداری ثبت نشده است.</div>`;
 
   app.innerHTML = `
+    ${sharedDatalist}
     <header class="top">
       <h1>هشدار قیمت بورس</h1>
       <div class="status"><span class="dot ${configured?'on':'off'}"></span>${configured?'متصل به گیت‌هاب':'پیکربندی نشده'}</div>
@@ -303,6 +374,7 @@ function render(){
     ${statusHtml}
     ${dashboardHtml}
     ${formHtml}
+    ${liveChartHtml}
     <div class="card">
       <h2>لیست هشدارها<small>${state.alerts.length} مورد</small></h2>
       <button class="btn-secondary" onclick="refreshAlerts()" style="margin-bottom:12px;">${state.loading?'در حال بارگذاری...':'بروزرسانی لیست'}</button>
